@@ -6,8 +6,12 @@ dist/
 
 # Test files
 .tox/
+.pytest_cache/
 
 # Coverage files
 .coverage
 coverage.xml
 nosetests.xml
+
+# IDE artifacts
+.vscode/
