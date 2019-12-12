@@ -14,6 +14,7 @@
 
 """Helper functions for commonly used utilities."""
 
+from collections import defaultdict
 import functools
 import inspect
 import logging
@@ -142,29 +143,45 @@ def positional(max_positional_args):
         return positional(len(args) - len(defaults))(max_positional_args)
 
 
-def parse_unique_urlencoded(content):
-    """Parses unique key-value parameters from urlencoded content.
+def union_query_params(*params):
+    """Returns the union of multiple query parameter dictionaries.
+
+    The dictionaries values may be single values or a list of values.
 
     Args:
-        content: string, URL-encoded key-value pairs.
-
+        *params: dicts
     Returns:
-        dict, The key-value pairs from ``content``.
-
-    Raises:
-        ValueError: if one of the keys is repeated.
+        a single dict, with values being lists of param values.
     """
-    urlencoded_params = urllib.parse.parse_qs(content)
-    params = {}
-    for key, value in six.iteritems(urlencoded_params):
-        if len(value) != 1:
-            msg = "URL-encoded content contains a repeated value:" "%s -> %s" % (
-                key,
-                ", ".join(value),
-            )
-            raise ValueError(msg)
-        params[key] = value[0]
-    return params
+    union = defaultdict(list)
+    for params_dict in params:
+        for key, value in params_dict.items():
+            if value is None:
+                pass
+            elif isinstance(value, (list)):
+                union[key].extend(value)
+            else:
+                union[key].append(value)
+    return union
+
+
+def query_params_to_list(params):
+    """Converts a query with value lists into a list of key, value pairs.
+
+    Dicts with query param values are returned by urllib.parse.parse_qs() and
+    union_query_params().
+
+    Args:
+        params: dict, with values being a list of query param values.
+    Returns:
+        a list of key, value pairs where the values are single values, 
+        not lists.
+    """
+    items = []
+    for key, values in params.items():
+        for value in values:
+            items.append((key, value))
+    return items
 
 
 def update_query_params(uri, params):
@@ -185,9 +202,11 @@ def update_query_params(uri, params):
         The same URI but with the new query parameters added.
     """
     parts = urllib.parse.urlparse(uri)
-    query_params = parse_unique_urlencoded(parts.query)
-    query_params.update(params)
-    new_query = urllib.parse.urlencode(query_params)
+
+    parsed_query_params = urllib.parse.parse_qs(parts.query)
+    query_params = union_query_params(parsed_query_params, params)
+    query_items = query_params_to_list(query_params)
+    new_query = urllib.parse.urlencode(query_items)
     new_parts = parts._replace(query=new_query)
     return urllib.parse.urlunparse(new_parts)
 

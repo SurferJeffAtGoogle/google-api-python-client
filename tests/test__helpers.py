@@ -88,7 +88,7 @@ class AddQueryParameterTests(unittest.TestCase):
             _helpers._add_query_parameter("/action", "a", "b"), "/action?a=b"
         )
         self.assertEqual(
-            _helpers._add_query_parameter("/action?a=b", "a", "c"), "/action?a=c"
+            _helpers._add_query_parameter("/action?a=b", "a", "c"), "/action?a=b&a=c"
         )
         # Order is non-deterministic.
         self.assertIn(
@@ -133,22 +133,10 @@ class Test_update_query_params(unittest.TestCase):
         base_uri = "http://www.google.com"
         uri = base_uri + "?x=a"
         updated = _helpers.update_query_params(uri, {"x": "b", "y": "c"})
-        hardcoded_update = base_uri + "?x=b&y=c"
+        hardcoded_update = base_uri + "?x=a&x=b&y=c"
         assertUrisEqual(self, updated, hardcoded_update)
 
     def test_update_query_params_repeated_params(self):
         uri = "http://www.google.com?x=a&x=b"
-        with self.assertRaises(ValueError):
-            _helpers.update_query_params(uri, {"a": "c"})
-
-
-class Test_parse_unique_urlencoded(unittest.TestCase):
-    def test_without_repeats(self):
-        content = "a=b&c=d"
-        result = _helpers.parse_unique_urlencoded(content)
-        self.assertEqual(result, {"a": "b", "c": "d"})
-
-    def test_with_repeats(self):
-        content = "a=b&a=d"
-        with self.assertRaises(ValueError):
-            _helpers.parse_unique_urlencoded(content)
+        updated = _helpers.update_query_params(uri, {"a": "c"})
+        assertUrisEqual(self, uri + "&a=c", updated)

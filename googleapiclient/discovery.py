@@ -1008,7 +1008,7 @@ Returns:
 
         if isPageTokenParameter:
             # Replace pageToken value in URI
-            request.uri = _add_query_parameter(
+            request.uri = _replace_query_parameter(
                 request.uri, pageTokenName, nextPageToken
             )
             logger.info("Next page request URL: %s %s" % (methodName, request.uri))
